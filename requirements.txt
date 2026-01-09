@@ -1,5 +1,6 @@
 flask
 flask-dance[sqla]
+Flask-SQLAlchemy
 google-generativeai
 python-dotenv
 requests
