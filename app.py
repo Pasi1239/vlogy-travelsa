@@ -25,7 +25,7 @@ GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
 # Universal Paths: These fix the 'OperationalError' you saw in VS Code
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-app.config['UPLOAD_FOLDER'] = str(base_dir / 'static' / 'uploads')
+app.config['UPLOAD_FOLDER'] = '/tmp/uploads' # Change from static/uploads to /tmp/uploads
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -40,9 +40,9 @@ class Post(db.Model):
 # Create Database and Folders safely
 with app.app_context():
     db.create_all()
+    # Check if the /tmp/uploads folder exists, if not, create it
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
 # --- 4. GOOGLE OAUTH CONFIG ---
 blueprint = make_google_blueprint(
     client_id=GOOGLE_CLIENT_ID,
@@ -121,3 +121,4 @@ if __name__ == '__main__':
     # For local running on 127.0.0.1:5000
 
     app.run(host='127.0.0.1', port=5000, debug=True)
+
