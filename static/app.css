@@ -1,0 +1,103 @@
+/* --- Global Styles --- */
+:root {
+    --primary-blue: #3b82f6;
+    --dark-bg: #0f172a;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+    background-color: var(--dark-bg);
+    color: #e2e8f0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-image: radial-gradient(circle at top right, #1e293b, #0f172a);
+    min-height: 100vh;
+}
+
+/* --- Navbar & Logo --- */
+.navbar {
+    background: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.logo {
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: white !important;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+/* --- Vlog Cards --- */
+.vlog-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.vlog-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    border-color: var(--primary-blue);
+}
+
+.card-img-top {
+    border-bottom: 1px solid var(--glass-border);
+    transition: filter 0.3s ease;
+}
+
+.vlog-card:hover .card-img-top {
+    filter: brightness(1.1);
+}
+
+/* --- Form Styles --- */
+.form-control {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: white !important;
+    border-radius: 10px;
+}
+
+.form-control:focus {
+    border-color: var(--primary-blue) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* --- AI Chat UI --- */
+#chat-window {
+    border: 1px solid var(--glass-border);
+    animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.chat-bubble-user {
+    background: var(--primary-blue) !important;
+    border-radius: 15px 15px 0 15px !important;
+}
+
+.chat-bubble-ai {
+    background: #334155 !important;
+    border-radius: 15px 15px 15px 0 !important;
+    border: 1px solid var(--glass-border);
+}
+
+/* --- Buttons --- */
+.btn-primary {
+    background-color: var(--primary-blue);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+    transform: scale(1.02);
+}
