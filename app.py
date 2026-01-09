@@ -24,7 +24,7 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
 # Universal Paths: These fix the 'OperationalError' you saw in VS Code
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{base_dir / "vlog.db"}'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
 app.config['UPLOAD_FOLDER'] = str(base_dir / 'static' / 'uploads')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -119,4 +119,5 @@ def chat():
     
 if __name__ == '__main__':
     # For local running on 127.0.0.1:5000
+
     app.run(host='127.0.0.1', port=5000, debug=True)
