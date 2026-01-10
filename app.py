@@ -1,11 +1,11 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_dance.contrib.google import make_google_blueprint, google
-from google import genai 
-from dotenv import load_dotenv
-from pathlib import Path
 import vercel_blob
+from pathlib import Path
+from dotenv import load_dotenv
+from google import genai 
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask_dance.contrib.google import make_google_blueprint, google
 
 # --- 1. ENVIRONMENT LOADING ---
 base_dir = Path(__file__).resolve().parent
@@ -28,28 +28,23 @@ if database_url and database_url.startswith("postgres://"):
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f'sqlite:///{base_dir / "vlog.db"}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
 # --- 3. DEFINE MODEL ---
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
-    filename = db.Column(db.String(500)) # Increased size for long Blob URLs
+    filename = db.Column(db.String(500)) # Long URL support
     desc = db.Column(db.Text)
 
 with app.app_context():
     db.create_all()
 
-# --- 4. GOOGLE OAUTH CONFIG ---
+# --- 4. GOOGLE OAUTH ---
 blueprint = make_google_blueprint(
     client_id=GOOGLE_CLIENT_ID,
     client_secret=GOOGLE_CLIENT_SECRET,
-    scope=[
-        "openid", 
-        "https://www.googleapis.com/auth/userinfo.email", 
-        "https://www.googleapis.com/auth/userinfo.profile"
-    ],
+    scope=["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"],
     offline=True
 )
 app.register_blueprint(blueprint, url_prefix="/login")
@@ -72,7 +67,6 @@ def home():
                 session['user'] = resp.json()['email']
         except: 
             session.clear()
-    
     all_posts = Post.query.all()
     return render_template('index.html', posts=all_posts)
 
@@ -89,10 +83,8 @@ def upload():
 
     if file and session.get('user'):
         try:
-            # Upload to Vercel Blob
+            # Upload directly to Vercel Blob permanent storage
             blob = vercel_blob.put(file.filename, file.read(), {'access': 'public'})
-            
-            # Save to Database
             new_post = Post(title=title, filename=blob.url, desc=desc)
             db.session.add(new_post)
             db.session.commit()
@@ -104,44 +96,16 @@ def upload():
 @app.route('/chat', methods=['POST'])
 def chat():
     if not client:
-        return jsonify({"reply": "Vlogy is resting today. Check your API key!"})
-
+        return jsonify({"reply": "Vlogy is resting today."})
     try:
         user_msg = request.json.get("message")
         all_posts = Post.query.all()
         posts_info = "\n".join([f"- {p.title}: {p.desc}" for p in all_posts])
         prompt = f"You are 'Vlogy', a travel assistant. Context:\n{posts_info}\nUser: {user_msg}"
-        
-        response = client.models.generate_content(
-            model='gemini-2.0-flash', 
-            contents=prompt
-        )
+        response = client.models.generate_content(model='gemini-2.0-flash', contents=prompt)
         return jsonify({"reply": response.text})
     except Exception as e:
-        return jsonify({"reply": "I'm having trouble thinking right now!"})
+        return jsonify({"reply": "I'm having trouble thinking!"})
 
-# --- THIS MUST BE THE ONLY MAIN BLOCK AND AT THE VERY END ---
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)
-    
-@app.route('/upload', methods=['POST'])
-def upload():
-    # This checks for both "file" and "image" names to be safe
-    file = request.files.get('file') or request.files.get('image')
-    title = request.form.get('title')
-    desc = request.form.get('desc')
-
-    if file and session.get('user'):
-        try:
-            # Upload to Vercel Blob (Permanent storage)
-            blob = vercel_blob.put(file.filename, file.read(), {'access': 'public'})
-            
-            # Save the permanent URL (blob.url) to your Postgres database
-            new_post = Post(title=title, filename=blob.url, desc=desc)
-            db.session.add(new_post)
-            db.session.commit()
-            print("Post saved successfully to the cloud!")
-        except Exception as e:
-            print(f"Upload failed: {e}")
-            
-    return redirect(url_for('home'))
