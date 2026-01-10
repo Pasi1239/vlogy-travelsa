@@ -123,3 +123,25 @@ def chat():
 # --- THIS MUST BE THE ONLY MAIN BLOCK AND AT THE VERY END ---
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)
+    
+@app.route('/upload', methods=['POST'])
+def upload():
+    # This checks for both "file" and "image" names to be safe
+    file = request.files.get('file') or request.files.get('image')
+    title = request.form.get('title')
+    desc = request.form.get('desc')
+
+    if file and session.get('user'):
+        try:
+            # Upload to Vercel Blob (Permanent storage)
+            blob = vercel_blob.put(file.filename, file.read(), {'access': 'public'})
+            
+            # Save the permanent URL (blob.url) to your Postgres database
+            new_post = Post(title=title, filename=blob.url, desc=desc)
+            db.session.add(new_post)
+            db.session.commit()
+            print("Post saved successfully to the cloud!")
+        except Exception as e:
+            print(f"Upload failed: {e}")
+            
+    return redirect(url_for('home'))
