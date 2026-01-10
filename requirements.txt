@@ -6,3 +6,4 @@ python-dotenv
 requests
 gunicorn
 psycopg2-binary==2.9.9
+vercel-blob==0.2.0
