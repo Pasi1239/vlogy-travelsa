@@ -5,6 +5,8 @@ from flask_dance.contrib.google import make_google_blueprint, google
 from google import genai 
 from dotenv import load_dotenv
 from pathlib import Path
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+import vercel_blob
 
 # --- 1. DYNAMIC ENVIRONMENT LOADING ---
 base_dir = Path(__file__).resolve().parent
@@ -121,6 +123,48 @@ def chat():
             model='gemini-2.0-flash', 
             contents=prompt
         )
+        return jsonify({"reply": response.text})
+    except Exception as e:
+        return jsonify({"reply": "I'm having trouble thinking right now!"})
+
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=5000, debug=True)
+@app.route('/upload', methods=['POST'])
+def upload():
+    # 1. Get data from the form
+    # Note: Use 'file' or 'image' depending on your index.html <input name="...">
+    file = request.files.get('file') or request.files.get('image')
+    title = request.form.get('title')
+    desc = request.form.get('desc')
+
+    if file and session.get('user'):
+        try:
+            # 2. Upload directly to Vercel Blob
+            blob = vercel_blob.put(file.filename, file.read(), {'access': 'public'})
+            
+            # 3. Save to Postgres using the BLOB URL
+            new_post = Post(
+                title=title, 
+                filename=blob.url, # This is the permanent cloud link
+                desc=desc
+            )
+            db.session.add(new_post)
+            db.session.commit()
+        except Exception as e:
+            print(f"Upload failed: {e}")
+            
+    return redirect(url_for('home'))
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    if not client:
+        return jsonify({"reply": "Vlogy is resting today. Check your API key!"})
+    try:
+        user_msg = request.json.get("message")
+        all_posts = Post.query.all()
+        posts_info = "\n".join([f"- {p.title}: {p.desc}" for p in all_posts])
+        prompt = f"You are 'Vlogy', a travel assistant. Context:\n{posts_info}\nUser: {user_msg}"
+        response = client.models.generate_content(model='gemini-2.0-flash', contents=prompt)
         return jsonify({"reply": response.text})
     except Exception as e:
         return jsonify({"reply": "I'm having trouble thinking right now!"})
