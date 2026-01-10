@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # --- 1. DYNAMIC ENVIRONMENT LOADING ---
-# This line finds your .env file whether on Windows (D:\) or Linux (/home/Pasindu)
 base_dir = Path(__file__).resolve().parent
 env_path = base_dir / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -23,10 +22,19 @@ GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# Universal Paths: These fix the 'OperationalError' you saw in VS Code
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-app.config['UPLOAD_FOLDER'] = '/tmp/uploads' # Change from static/uploads to /tmp/uploads
+# --- DATABASE LOGIC ---
+# This looks for the Vercel Postgres URL first
+database_url = os.environ.get("POSTGRES_URL")
+# Fix: SQLAlchemy requires 'postgresql://', but Vercel/Neon often gives 'postgres://'
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+# If POSTGRES_URL exists, use it. Otherwise, use local SQLite.
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or f'sqlite:///{base_dir / "vlog.db"}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Use /tmp for uploads on Vercel to avoid "Read-only" errors
+app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 
 db = SQLAlchemy(app)
 
@@ -40,9 +48,9 @@ class Post(db.Model):
 # Create Database and Folders safely
 with app.app_context():
     db.create_all()
-    # Check if the /tmp/uploads folder exists, if not, create it
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 # --- 4. GOOGLE OAUTH CONFIG ---
 blueprint = make_google_blueprint(
     client_id=GOOGLE_CLIENT_ID,
@@ -101,7 +109,7 @@ def upload():
 @app.route('/chat', methods=['POST'])
 def chat():
     if not client:
-        return jsonify({"reply": "Vlogy is resting today. Please check your Gemini API key!"})
+        return jsonify({"reply": "Vlogy is resting today. Check your API key!"})
 
     try:
         user_msg = request.json.get("message")
@@ -115,10 +123,7 @@ def chat():
         )
         return jsonify({"reply": response.text})
     except Exception as e:
-        return jsonify({"reply": "I'm having trouble thinking. Please try again later!"})
-    
+        return jsonify({"reply": "I'm having trouble thinking right now!"})
+
 if __name__ == '__main__':
-    # For local running on 127.0.0.1:5000
-
     app.run(host='127.0.0.1', port=5000, debug=True)
-
